@@ -1,0 +1,323 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title>Leebox!</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
+</head>
+<body>
+    <div class="mainWrapper">
+        <div style="text-align: center;">
+            <img id="headerImage" src="Leebox.webp" alt="Game Banner">
+            <div class="scrollContainer">
+                <div id="gameArea"></div>
+            </div>
+        </div>
+    </div>
+
+        <script>
+            const connection = new signalR.HubConnectionBuilder()
+                .withUrl("/gamehub")
+                .build();
+
+            let playerId = null;
+
+            connection.on("ReceivePlayerId", id => {
+                playerId = id;
+                console.log("Your ID:", playerId);
+            });
+
+            connection.on("SetImage", text => {
+                const img = document.getElementById("headerImage");
+                img.src = text;
+
+            });
+
+            connection.on("ShowTextbox", prompt => {
+                const area = document.getElementById("gameArea");
+                area.innerHTML = `
+                                                <p>${prompt}</p>
+                                                <input type="text" id="answerInput" autocomplete="off">
+                                                <button onclick="sendAnswer(document.getElementById('answerInput').value);">Submit</button>
+                                            `;
+            });
+
+            connection.on("ShowDrawbox", prompt => {
+                const area = document.getElementById("gameArea");
+                area.innerHTML = `
+                                                <p>${prompt}</p>
+
+                                                <button id="clear">Clear</button>
+                                        <canvas id="canvas" width="400" height="300"></canvas><br>
+                                        <button id="toggle">Eraser</button>
+
+                                        <button onclick="sendAnswer(canvas.toDataURL('image/png'));">Submit</button>
+                                        `;
+
+                const canvas = document.getElementById("canvas");
+                const ctx = canvas.getContext("2d");
+                let drawing = false;
+                let erasing = false;
+
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                canvas.addEventListener("mousedown", (e) => {
+                    drawing = true;
+                    ctx.beginPath();
+                    ctx.moveTo(...getPos(e));
+                });
+
+                canvas.addEventListener("mousemove", (e) => {
+                    if (!drawing) return;
+                    const [x, y] = getPos(e);
+                    drawLine(x, y);
+                });
+
+                ["mouseup", "mouseout"].forEach(event =>
+                    canvas.addEventListener(event, () => drawing = false)
+                );
+
+                // Touch events
+                canvas.addEventListener("touchstart", (e) => {
+                    drawing = true;
+                    ctx.beginPath();
+                    ctx.moveTo(...getPos(e));
+                    e.preventDefault(); // prevent scrolling
+                }, { passive: false });
+
+                canvas.addEventListener("touchmove", (e) => {
+                    if (!drawing) return;
+                    const [x, y] = getPos(e);
+                    drawLine(x, y);
+                    e.preventDefault(); // prevent scrolling
+                }, { passive: false });
+
+                canvas.addEventListener("touchend", () => drawing = false);
+
+                function drawLine(x, y) {
+                    ctx.strokeStyle = erasing ? "white" : "black";
+                    ctx.lineWidth = erasing ? 6 : 4;
+                    ctx.lineTo(x, y);
+                    ctx.stroke();
+                }
+
+                document.getElementById("toggle").onclick = () => {
+                    erasing = !erasing;
+                    document.getElementById("toggle").textContent = erasing ? "Pen" : "Eraser";
+                };
+
+                document.getElementById("clear").onclick = () => {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                };
+
+                function getPos(e) {
+                    const rect = canvas.getBoundingClientRect();
+                    if (e.touches && e.touches.length > 0) {
+                        return [e.touches[0].clientX - rect.left, e.touches[0].clientY - rect.top];
+                    } else {
+                        return [e.clientX - rect.left, e.clientY - rect.top];
+                    }
+                    //return [e.clientX - rect.left, e.clientY - rect.top];
+                }
+
+
+            });
+
+            connection.on("ShowText", prompt => {
+                const area = document.getElementById("gameArea");
+                area.innerHTML = `
+                                            <p>${prompt}</p>
+                                        `;
+            });
+
+            connection.on("ShowOptions", (message, options, images) => {
+                const area = document.getElementById("gameArea");
+                area.innerHTML = `<p>${message}</p>`;
+
+                options.forEach((option, index) => {
+                    const button = document.createElement("button");
+                    button.textContent = option;
+
+                    if (images && images[index]) {
+                        const img = document.createElement("img");
+                        img.src = images[index];
+                        img.alt = option;
+                        img.style.width = "120px";  // adjust size as needed
+                        img.style.height = "120px";
+                        img.style.marginRight = "8px";
+                        img.style.verticalAlign = "middle";
+
+                        // Clear button text and append image + text
+                        button.textContent = "";
+                        button.appendChild(img);
+                        const span = document.createElement("span");
+                        span.textContent = option;
+                        button.appendChild(span);
+                    }
+
+
+
+                    button.onclick = () => sendAnswer(option);
+                    area.appendChild(button);
+
+                    area.appendChild(document.createElement("br"));
+                    area.appendChild(document.createElement("br"));
+                });
+            });
+
+            /*async function sendAnswer(answer) {
+                await connection.invoke("SubmitAnswer", playerId, answer);
+            }*/
+            let submitting = false;
+            async function sendAnswer(answer) {
+                if (submitting) return;
+                submitting = true;
+                try {
+                    await connection.invoke("SubmitAnswer", playerId, answer);
+                } catch (e) {
+                    console.error("Submit failed", e);
+                }
+                submitting = false;
+            }
+
+
+            async function forceSubmit() {
+                const area = document.getElementById("gameArea");
+
+                // Check for text input
+                const textInput = document.getElementById("answerInput");
+                if (textInput) {
+                    const answer = textInput.value || "";  // Empty if not filled
+                    await sendAnswer(answer);
+                    return;
+                }
+
+                // Check for canvas
+                const canvas = document.getElementById("canvas");
+                if (canvas) {
+                    const imageAnswer = canvas.toDataURL("image/png");
+                    await sendAnswer(imageAnswer);
+                    return;
+                }
+            }
+
+            connection.on("ForceSubmit", forceSubmit);
+            connection.start().catch(err => console.error(err));
+        </script>
+
+
+
+        <style>
+            /* ===== Base: Mobile-first ===== */
+
+            .mainWrapper {
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+                box-sizing: border-box;
+                text-align: center;
+            }
+
+            html, body {
+                margin: 0;
+                padding: 0;
+                height: 100%;
+                font-family: Arial, sans-serif;
+                background-color: #f4f4f8;
+            }
+
+            .scrollContainer {
+                width: 100%;
+                display: flex;
+                justify-content: center;
+                box-sizing: border-box;
+                overflow-x: hidden;
+                flex-direction: column;
+                align-items: center;
+            }
+
+            #headerImage {
+                width: 100%;
+                height: auto;
+                max-width: 100%;
+                border-radius: 0;
+                padding: 0;
+                margin-bottom: 20px;
+            }
+
+            #gameArea {
+                background-color: white;
+                padding: 20px;
+                border-radius: 0;
+                box-shadow: none;
+                text-align: center;
+                width: 100%;
+                flex: 1;
+                box-sizing: border-box;
+                /*min-height: calc(100vh - 400px);*/
+            }
+
+            p {
+                font-size: 18px;
+                margin-bottom: 20px;
+            }
+
+            input[type="text"] {
+                padding: 10px;
+                width: 90%;
+                border: 1px solid #ccc;
+                border-radius: 6px;
+                font-size: 16px;
+                margin-bottom: 15px;
+            }
+
+            button {
+                padding: 10px 20px;
+                font-size: 16px;
+                color: white;
+                background-color: #0078d4;
+                border: none;
+                border-radius: 6px;
+                cursor: pointer;
+                transition: background-color 0.3s;
+            }
+
+                button:hover {
+                    background-color: #005ea1;
+                }
+
+            img[src=""] {
+                display: none;
+            }
+            /* ===== Desktop (enhancements only) ===== */
+
+            @media (min-width: 768px) {
+
+
+                #headerImage {
+                    max-width: 400px;
+                    padding: 30px 40px;
+                    border-radius: 12px;
+                }
+
+                #gameArea {
+                    max-width: 400px;
+                    margin: 0 auto;
+                    padding: 30px 40px;
+                    border-radius: 12px;
+                    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+                    min-height: auto;
+                }
+
+                input[type="text"] {
+                    width: 80%;
+                }
+            }
+        </style>
+
+
+</body>
+</html>
