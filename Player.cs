@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.SignalR;
+using System.Net;
 using System.Numerics;
 using System.Text.Json.Serialization;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace Server
 {
@@ -75,6 +77,7 @@ namespace Server
 
         public async void ShowText(string text)
         {
+            text = WebUtility.HtmlEncode(text);
             if (Client == null || string.IsNullOrEmpty(ConnectionId))
                 return; // Ensure the client is connected
             await Client.SendAsync("ShowText", text);
@@ -82,13 +85,18 @@ namespace Server
 
         public async void AskTextQuestion(string text, Action<object> answer)
         {
-            if(Client == null || string.IsNullOrEmpty(ConnectionId))
+            text = WebUtility.HtmlEncode(text);
+            if (Client == null || string.IsNullOrEmpty(ConnectionId))
                 return; // Ensure the client is connected
             _answerCallbacks.Push(answer);
             await Client.SendAsync("ShowTextbox", text);
         }
         public async void OptionQuestion(string message, string[] options, string?[] images, Action<object> answer)
         {
+            message = WebUtility.HtmlEncode(message);
+            options = options.Select(o => WebUtility.HtmlEncode(o)).ToArray();
+            images = images.Select(i => i == null ? null : WebUtility.HtmlEncode(i)).ToArray();
+
             if (Client == null || string.IsNullOrEmpty(ConnectionId))
                 return; // Ensure the client is connected
             _answerCallbacks.Push(answer);
@@ -96,6 +104,8 @@ namespace Server
         }
         public async void DrawQuestion(string message, Action<object> answer)
         {
+            message = WebUtility.HtmlEncode(message);
+
             if (Client == null || string.IsNullOrEmpty(ConnectionId))
                 return; // Ensure the client is connected
             _answerCallbacks.Push(answer);
@@ -103,6 +113,8 @@ namespace Server
         }
         public async void SetImage(string text)
         {
+            text = WebUtility.HtmlEncode(text);
+
             if (Client == null || string.IsNullOrEmpty(ConnectionId))
                 return; // Ensure the client is connected
             await Client.SendAsync("SetImage", text);

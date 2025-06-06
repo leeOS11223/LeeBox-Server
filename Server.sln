@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LeeboxLib", "..\LeeboxLib\L
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestBox", "..\TestBox\TestBox.csproj", "{0D5F6EF8-7316-4734-88A2-328F0F6AD154}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LeeboxPowerpoint", "..\LeeboxPowerpoint\LeeboxPowerpoint.csproj", "{6F2B90D9-471C-419D-93DE-C443CB1A07CD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{0D5F6EF8-7316-4734-88A2-328F0F6AD154}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0D5F6EF8-7316-4734-88A2-328F0F6AD154}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0D5F6EF8-7316-4734-88A2-328F0F6AD154}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6F2B90D9-471C-419D-93DE-C443CB1A07CD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6F2B90D9-471C-419D-93DE-C443CB1A07CD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6F2B90D9-471C-419D-93DE-C443CB1A07CD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6F2B90D9-471C-419D-93DE-C443CB1A07CD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

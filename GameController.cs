@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.Http;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace Server
 {
@@ -8,6 +9,14 @@ namespace Server
     [Route("api")]
     public class GameController : ControllerBase
     {
+        //redirect to index.html
+        [HttpGet("")]
+        [SwaggerIgnore]
+        public IActionResult Index()
+        {
+            return Redirect("swagger");
+        }
+
         [HttpGet("newroom")]
         public IActionResult NewRoom([FromServices] IHubContext<GameHub> hub, [FromQuery] int maxPlayers = 100)
         {

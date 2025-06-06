@@ -68,6 +68,8 @@ namespace Server
             return true;
         }
 
+
+
         public bool TechnicallyEmpty() => Players.Count == 0 || Players.All(p => !p.IsConnectionAlive());
 
         public bool GetPlayerByName(string playerName, out Player? player)
